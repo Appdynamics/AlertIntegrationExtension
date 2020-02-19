@@ -1,0 +1,11 @@
+# generic jdbc job store
+org.quartz.jobStore.class = org.quartz.impl.jdbcjobstore.JobStoreTX
+org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+org.quartz.jobStore.dataSource = disk
+
+# persist to H2 database
+org.quartz.dataSource.disk.driver = org.h2.Driver
+
+org.quartz.dataSource.disk.URL = jdbc:h2:file:/Users/igor.simoes/Documents/Customers/InternalProjects/AlertIntegration/run/appd_events_db
+org.quartz.dataSource.disk.user = appd
+org.quartz.dataSource.disk.password = appdintegration
