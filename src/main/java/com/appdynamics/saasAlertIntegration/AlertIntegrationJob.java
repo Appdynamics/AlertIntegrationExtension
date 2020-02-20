@@ -17,7 +17,9 @@ import org.quartz.JobExecutionException;
 import com.appdynamics.saasAlertIntegration.connectionUtil;
 import com.appdynamics.saasAlertIntegration.getEventsThread;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 /**
@@ -60,41 +62,46 @@ public class AlertIntegrationJob implements Job{
         String integration_protocol = dataMap.getString(integrationProtocol);
         int poll_interval = dataMap.getInt(pollInterval);
         setH2ConnectionPool();
-
-        connectionUtil controllerConnection = new connectionUtil(metric_prefix, controller_account);
-        controllerConnection.writeMetric("Job excution count", "AVERAGE", "1");
-        Application[] app_list = controllerConnection.getApplications(controller_url, controller_user, controller_account, controller_key);
         
-        //int monitored_applications = 2;
-        //int i = 0;
-        for (Application application:app_list){
-            //if (i < monitored_applications){
+        try{
+            Connection deletecon = this.connectionPool.getConnection();
+            deletecon.setAutoCommit(false);
+            long old_entries_limit = System.currentTimeMillis()-86400000;
+
+            String delete_old_entries = "delete from events where SENT_DATE <= "+Long.toString(old_entries_limit);
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Deleting old entries from log: "+ delete_old_entries);
+            deletecon.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            Statement deletestm = deletecon.createStatement();
+            deletestm.execute(delete_old_entries);
+            connectionUtil controllerConnection = new connectionUtil(metric_prefix, controller_account);
+            controllerConnection.writeMetric("Job excution count", "AVERAGE", "1");
+            Application[] app_list = controllerConnection.getApplications(controller_url, controller_user, controller_account, controller_key);
+
+            //int monitored_applications = 2;
+            //int i = 0;
+            for (Application application:app_list){
+                //if (i < monitored_applications){
                 System.out.println(application.getId()+" - "+application.getName());
-                
-                try{
-                    Connection con = this.connectionPool.getConnection();
-                    con.setAutoCommit(false);
-                    con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-                    Runnable getEventsThreadRunnable = new getEventsThread(application.getId(), 
-                                                                          application.getName(), 
-                                                                          controller_url, 
-                                                                          controller_user, 
-                                                                          controller_account, 
-                                                                          controller_key, 
-                                                                          poll_interval, 
-                                                                          con,
-                                                                          metric_prefix,
-                                                                          integration_hostname, 
-                                                                          integration_port, 
-                                                                          integration_protocol);
-                    new Thread(getEventsThreadRunnable).start();
-                }
-                catch(SQLException ex){
-                    LOGGER.log(Level.SEVERE, "{0}: There was an exception getting a connection from connection pool: {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
-                }
-                
-            /*}
-            i++;*/
+                Connection con = this.connectionPool.getConnection();
+                con.setAutoCommit(false);
+                con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+                Runnable getEventsThreadRunnable = new getEventsThread(application.getId(), 
+                                                                      application.getName(), 
+                                                                      controller_url, 
+                                                                      controller_user, 
+                                                                      controller_account, 
+                                                                      controller_key, 
+                                                                      poll_interval, 
+                                                                      con,
+                                                                      metric_prefix,
+                                                                      integration_hostname, 
+                                                                      integration_port, 
+                                                                      integration_protocol);
+                new Thread(getEventsThreadRunnable).start();
+            }
+        }
+        catch(SQLException ex){
+            LOGGER.log(Level.SEVERE, Thread.currentThread().getName()+": There was an exception getting a connection from connection pool: "+ ex.getMessage());
         }
         //this.connectionPool.dispose();
     }

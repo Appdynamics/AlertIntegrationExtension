@@ -14,8 +14,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Properties;
 import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+//import java.util.logging.Level;
+//import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
@@ -33,11 +33,15 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.Connection;
 import java.util.logging.LogRecord;
+import org.apache.logging.log4j.Level;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Level;
 
 /**
  *
@@ -52,9 +56,9 @@ import org.quartz.JobExecutionException;
 
 public class JobTrigger {
     
-        final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+        final private static Logger LOGGER = LogManager.getRootLogger();//Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
         
-        private static void setUpLogger(){
+        /*private static void setUpLogger(){
            try{
                FileHandler fileTxt = new FileHandler("AlertIntegration.log", 10000000, 5, true);
                fileTxt.setFormatter(new SimpleFormatter() {
@@ -79,10 +83,11 @@ public class JobTrigger {
            catch (IOException e){
                System.out.println("Unable to write log: "+ e.getMessage());
            }
-        }
+        }*/
         
 	public static void main(String[] args) throws Exception {
-                setUpLogger();
+                //setUpLogger();
+                //LOGGER.log(Level.WARN, arg1);
 		LOGGER.log(Level.INFO, "Starting Alert Integration...");
 		Queue<String> waitingQueue = new LinkedList<>();
                 ConfigReader configuration = new ConfigReader();
@@ -133,7 +138,8 @@ public class JobTrigger {
                     scheduler.scheduleJob(job, trigger);
                 }
                 catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Could not read configuration file: {0}", e.getMessage());
+                    LOGGER.log(Level.WARN, "Tste"+e.getMessage());
+                        LOGGER.log(Level.WARN, "Could not read configuration file: "+ e.getMessage());
                         e.printStackTrace();
                 }
                 

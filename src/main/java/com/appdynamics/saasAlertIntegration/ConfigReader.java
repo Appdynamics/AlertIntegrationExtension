@@ -13,8 +13,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+//import java.util.logging.Level;
+//import java.util.logging.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Level;
 
 /**
  *
@@ -27,7 +30,8 @@ public class ConfigReader {
         Logger LOGGER;
         
         public ConfigReader(){
-            LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+            //LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+            LOGGER = LogManager.getRootLogger();
         }
 	public Properties getPropValues(String propFileName) throws IOException {
 		
@@ -45,7 +49,7 @@ public class ConfigReader {
 				throw new FileNotFoundException("Property file '" + propFileName + "' not found in the classpath");
 			}
 		} catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Exception reading configuration file: {0}", e);
+                        LOGGER.log(Level.WARN, "Exception reading configuration file: {0}", e);
 		} finally {
 			inputStream.close();
 		}
@@ -57,7 +61,7 @@ public class ConfigReader {
 		OutputStream outputStream;
 		try {
 			File configFile = new File(propFileName);
-                        LOGGER.log(Level.WARNING, "Config file path: {0}", configFile.getCanonicalPath());
+                        LOGGER.log(Level.WARN, "Config file path: {0}", configFile.getCanonicalPath());
 			outputStream = new FileOutputStream(configFile);
 			outputStream.write(properties.toString().replace("{", "").replace("}", "").replace(", ",System.getProperty("line.separator")).getBytes());
 			outputStream.flush();
@@ -65,7 +69,7 @@ public class ConfigReader {
                         result=true;
 		} catch (Exception e) {
 			System.out.println("Exception writing configuration file: " + e);
-                        LOGGER.log(Level.WARNING, "Exception writing configuration file: {0}", e);
+                        LOGGER.log(Level.WARN, "Exception writing configuration file: {0}", e);
 		}
 		
 		return result;

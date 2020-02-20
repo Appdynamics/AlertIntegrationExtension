@@ -12,7 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Date;
-import java.util.logging.Level;
+//import java.util.logging.Level;
 import java.util.Properties;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -31,12 +31,16 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.h2.jdbcx.JdbcConnectionPool;
+/*import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Level;*/
 
 /**
  *
  * @author igor.simoes
  */
 public class connectionUtil {
+    //final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     
     private String current_auth_token;
@@ -88,13 +92,22 @@ public class connectionUtil {
         }
     };
     
+    /*private void writeToLog(boolean stringConcatenation, String message, Level level){
+        if (stringConcatenation){
+            LOGGER.log(level, message);
+        }
+        else{
+            
+        }
+    }*/
+    
     private String authenticate(String controllerURL, String controllerUser, String controllerAccount, String controllerKey){
         long curr_time = Instant.now().toEpochMilli();
         long curr_token_expiration_time = getCurrentAuthTokenExpiration();
         String authentication_token = "";
         if (curr_time > curr_token_expiration_time){
             String full_url = controllerURL+"/controller/api/oauth/access_token";
-            String data = "grant_type=client_credentials&client_id=http_integration@ibm-metalurgicagerdau-nonprod&client_secret=8a0ae8c2-1988-49a2-be2e-7c54a7610865";
+            String data = "grant_type=client_credentials&client_id="+controllerUser+"@"+controllerAccount+"&client_secret="+controllerKey;
             String header = "Content-Type: application/vnd.appd.cntrl+protobuf;v=1";
             CUrl curl = new CUrl(full_url).data(data);//.data("foo=overwrite");
             curl.header(header);
@@ -123,7 +136,7 @@ public class connectionUtil {
             String auth_token = authenticate(controllerURL, controllerUser, controllerAccount, controllerKey);
             if (!auth_token.equals("")){
                 try{
-                    LOGGER.log(Level.INFO, "{0}: Trying to retrieve events for application {1}", new Object[]{Thread.currentThread().getName(), application_name});
+                    LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Trying to retrieve events for application "+application_name);
                     String full_url = controllerURL+"/controller/rest/applications/"+application_id+"/problems/healthrule-violations?time-range-type=BEFORE_NOW&duration-in-mins="+duration_mins+"&output=json";
                     CUrl curl = new CUrl(full_url);
                     String header = "Authorization:Bearer "+auth_token;
@@ -131,14 +144,14 @@ public class connectionUtil {
                     LOGGER.log(Level.INFO, "Curl: \""+ full_url +"\", Header: \"Authorization:Bearer xxxxxxxxx\"");
                     event_list = curl.exec(EventJsonResolver, null);
                     if (curl.getHttpCode() <= 400){
-                        LOGGER.log(Level.INFO, "{0}: Events successfully retrieved for application {1}:", new Object[]{Thread.currentThread().getName(), application_name});
+                        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Events successfully retrieved for application: "+application_name);
                     }
                     else{
-                        LOGGER.log(Level.INFO, "{0}: Connection failed for application: {1}.", new Object[]{Thread.currentThread().getName(), application_name});
+                        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Connection failed for application: "+application_name+".");
                     }
                 }
                 catch (Exception e){
-                    LOGGER.log(Level.WARNING, "{0} There was an error while retrieving application {1} events: {2}",new Object[]{Thread.currentThread().getName(), application_name, e.getMessage()});
+                    LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": There was an error while retrieving application "+application_name+" events: " + e.getMessage());
                 }
             }
             //leaving only the alerts that are actually in the current time range
@@ -157,7 +170,7 @@ public class connectionUtil {
         String output;
         String severity;
         if (event.getIncidentStatus() == "RESOLVED" ){
-            LOGGER.log(Level.INFO, "{0}: Mapping fields, incident status: {1}", new Object[]{Thread.currentThread().getName(), event.getIncidentStatus()});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Mapping fields, incident status: "+event.getIncidentStatus());
             severity = "CLEAR";
         }
         else{
@@ -184,7 +197,7 @@ public class connectionUtil {
         output = output.replace("AFFECTED_ENTITY_ID", event.getAffectedEntityDefinition().getEntityId());
         output = output.replace("STATUS", event.getIncidentStatus());
         output = output.replace("{", "").replace("}", "");
-        LOGGER.log(Level.INFO, "{0}: Mapping fields: {1}", new Object[]{Thread.currentThread().getName(), output});
+        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Mapping fields: "+output);
         return output;
     }
     
@@ -256,16 +269,16 @@ public class connectionUtil {
                                "\"instanceid\":\""+itm_instanceid+"\","+
                                "\"eventtype\":\""+itm_eventtype+"\""+
                                "}";
-            LOGGER.log(Level.INFO, "{0}: Integration POST BODY Json: {1}", new Object[]{Thread.currentThread().getName(), POST_BODY});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Integration POST BODY Json: "+POST_BODY);
             String full_integration_url = integration_protocol+"://"+integration_hostname+":"+integration_port;
             CUrl curl = new CUrl(full_integration_url);
             curl.data(POST_BODY);
-            LOGGER.log(Level.INFO, "Curl: \"{0}\"", full_integration_url);
+            LOGGER.log(Level.INFO, "Curl: \""+full_integration_url+"\"");
             curl.exec();
             HTTPReturnCode = curl.getHttpCode();
         }
         catch(IOException ex){
-            LOGGER.log(Level.INFO, "{0}: There was an error while loading the mapping configuration: {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": There was an error while loading the mapping configuration: "+ex.getMessage());
         }
         return HTTPReturnCode;
     }
@@ -299,14 +312,14 @@ public class connectionUtil {
                                                                         +event.getIncidentStatus()+"','"
                                                                         +application+"')";
                 stm.execute(insert_string);
-                LOGGER.log(Level.INFO, "{0}: Event being inserted: {1}", new Object[]{Thread.currentThread().getName(), event.toString()});
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Event being inserted: "+event.toString());
             }
         }
         catch (SQLException ex){
             success = false;
-            LOGGER.log(Level.WARNING, "{0}: There was a problem inserting application {1} event ''{2}'' to the local control database. Will retry on next cycle.", new Object[]{Thread.currentThread().getName(), application, current_event.getId()});
-            LOGGER.log(Level.WARNING, "{0}: SQL: {1}", new Object[]{Thread.currentThread().getName(), insert_string});
-            LOGGER.log(Level.INFO, "{0}: There was an exception while updating temp_events. {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+            LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": There was a problem inserting application "+application+" event ''"+current_event.getId()+"'' to the local control database. Will retry on next cycle.");
+            LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": SQL: "+insert_string);
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": There was an exception while updating temp_events. ", ex.getMessage());
         }
         
         return success;
@@ -326,35 +339,35 @@ public class connectionUtil {
                                        " and status = "+event.getIncidentStatus().substring(0,2)+
                                        " and id = "+event.getId()+
                                        "')";
-                LOGGER.log(Level.INFO, "{0}: Query to be executed: {1}", new Object[]{Thread.currentThread().getName(), select_string});
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Query to be executed: "+select_string);
                 ResultSet rs = stm.executeQuery(select_string);
                 rs.next();
                 if ((rs.isFirst()) && (rs.isLast())){//we got a single line
                     Events.add(event);
-                    LOGGER.log(Level.INFO, "{0}: Event to be sent: {1}", new Object[]{Thread.currentThread().getName(), event.toString()});
+                    LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Event to be sent: "+event.toString());
                 }
             }
         }
         catch (SQLException ex){
-            LOGGER.log(Level.INFO, "{0}: There was an exception while updating temp_events.{1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": There was an exception while updating temp_events."+ex.getMessage());
         }
         return Events;
     }
     
     public int sendEventsToIntegration(List<Event> events, String application, int tentative, Connection con, String integration_hostname, String integration_port, String integration_protocol){
         int  succeeded = 0;
-        LOGGER.log(Level.INFO, "{0}: Sending application {1} EVENTS to integration.", new Object[]{Thread.currentThread().getName(), application});
+        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Sending application "+application+" EVENTS to integration.");
         for (Event event:events){
             boolean sendToIntegrationResult;
             updateLogTables(event, application, con);
             sendToIntegrationResult = sendEventToIntegration(event, application, tentative, integration_hostname, integration_port, integration_protocol);
             completeDBTransaction(sendToIntegrationResult, con);
             try{
-                LOGGER.log(Level.INFO, "{0}: Writing event to file.", new Object[]{Thread.currentThread().getName()});
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Writing event to file.");
                 if (sendToIntegrationResult == true) writeSentEventsToFile("Event ID: "+event.getId()+", Event Name: "+event.getName()+", Application: "+application);
             }
             catch (IOException ex){
-                LOGGER.log(Level.WARNING, "{0}: WRITING EVENTS TO FILE FAILED: {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+                LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": WRITING EVENTS TO FILE FAILED: "+ex.getMessage());
             }
             succeeded += (sendToIntegrationResult) ? 1 : 0;
         }
@@ -378,16 +391,16 @@ public class connectionUtil {
     
     private boolean sendEventToIntegration(Event event, String application, int tentative, String integration_hostname, String integration_port, String integration_protocol){
         boolean succeeded=false;
-        LOGGER.log(Level.INFO, "{0}: Sending application {2} event {1} to integration.", new Object[]{Thread.currentThread().getName(), event.getId(), application});
+        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Sending application "+event.getId()+" event "+application+" to integration.");
         if (tentative >= 10){
-            LOGGER.log(Level.WARNING, "{0}: Number of tentatives shoulf be less than 10, changing value to 9.", Thread.currentThread().getName());
+            LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": Number of tentatives shoulf be less than 10, changing value to 9.");
             tentative = 9;
         }
         //if (tentative <= 2){    
         while (tentative >=0){
-            LOGGER.log(Level.INFO, "{0}: Tentative {3}, application {2}, event {1} to integration.", new Object[]{Thread.currentThread().getName(), event.getId(), application, tentative});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Tentative "+event.getId()+", application "+application+", event "+tentative+" to integration.");
             int httpResponse = sendEventHTTPRequest(event, integration_hostname, integration_port, integration_protocol, application);
-            LOGGER.log(Level.INFO, "{0}: HTTP response code from application {2}, event {1} to integration: {3}", new Object[]{Thread.currentThread().getName(), event.getId(), application, httpResponse});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": HTTP response code from application "+event.getId()+", event "+application+" to integration: "+httpResponse);
             if (httpResponse == 200) {
                 succeeded = true;
                 writeMetric("Success sendEventToIntegration", "AVERAGE", "1");
@@ -402,7 +415,7 @@ public class connectionUtil {
                     sendEventToIntegration(event, application, tentative, integration_hostname, integration_port, integration_protocol);
                 }
                 catch(InterruptedException ex){
-                    LOGGER.log(Level.WARNING, "{0}: There was a problem sleeping between integration tentatives.", Thread.currentThread().getName());
+                    LOGGER.log(Level.WARNING, Thread.currentThread().getName()+"{0}: There was a problem sleeping between integration tentatives.");
                 }
             }
         }
@@ -410,27 +423,27 @@ public class connectionUtil {
     }
     
     private void updateLogTables(Event event, String application, Connection con){
-        LOGGER.log(Level.INFO, "{0}: Updating log tables for application {2} event {1}.", new Object[]{Thread.currentThread().getName(), event.getId(), application});
+        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Updating log tables for application "+application+" event "+event.getId()+".");
         sendEventToLogTable(event, application, con);
         removeEventFromTempLogTable(event, application, con);
     }
     
     private boolean completeDBTransaction(boolean commit, Connection con){
         boolean succeeded = false;
-        LOGGER.log(Level.INFO, "{0}: Completing DB transaction.", new Object[]{Thread.currentThread().getName()});
+        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Completing DB transaction.");
         try{
             if (commit == true){
-                LOGGER.log(Level.INFO, "{0}: Successfully commited DB transaction.", new Object[]{Thread.currentThread().getName()});
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Successfully commited DB transaction.");
                 con.commit();
             }
             else{
-                LOGGER.log(Level.WARNING, "{0}: Successfully rolled back DB transaction.", new Object[]{Thread.currentThread().getName()});
+                LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": Successfully rolled back DB transaction.");
                 con.rollback();
             }
             succeeded = true;
         }
         catch (SQLException ex){
-            LOGGER.log(Level.WARNING, "{0}: There was an exception ***COMITING*** transactions: {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+            LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": There was an exception ***COMITING*** transactions: "+ex.getMessage());
         }
         return succeeded;
     }
@@ -441,15 +454,15 @@ public class connectionUtil {
             //Connection con = this.connectionPool.getConnection();//getH2Connection();
             //con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             Statement stm = con.createStatement();
-            LOGGER.log(Level.INFO, "{0}: Checking if event needs to be updated for application {1} event {2}.", new Object[]{Thread.currentThread().getName(), application, event.getId()});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Checking if event needs to be updated for application "+application+" event "+event.getId()+".");
             String select_string = "select id from events where id ='"+event.getId()+"'";
             ResultSet rs = stm.executeQuery(select_string);
             rs.next();
             if ((rs.isFirst())&&(rs.isLast())){
                 //update the record
                 String update_string = "update events set severity = "+event.getSeverity().substring(0,2)+", status="+event.getIncidentStatus().substring(0,2)+" where id = "+event.getId()+")";
-                LOGGER.log(Level.INFO, "{0}: Updating log table for application {1} event {2}. Previous status: {3}, current status: {4}, previous severity: {5}, current severity: {6}", new Object[]{Thread.currentThread().getName(), application, event.getId(), rs.getString("status"), event.getIncidentStatus(), rs.getString("severity"), event.getSeverity()});
-                LOGGER.log(Level.INFO, "{0}: Updating query: {1}", new Object[]{Thread.currentThread().getName(), update_string});
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Updating log table for application "+application+" event "+event.getId()+". Previous status: "+rs.getString("status")+", current status: "+event.getIncidentStatus()+", previous severity: "+rs.getString("severity")+", current severity: "+event.getSeverity());
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Updating query: "+update_string);
                 stm.execute(update_string);
                 succeeded = true;
                 writeMetric("Insert log success", "AVERAGE", "1");
@@ -457,8 +470,8 @@ public class connectionUtil {
             else{
                 //insert the record
                 String insert_string = "insert into events values("+event.getId()+","+event.getStartTimeInMillis()+","+System.currentTimeMillis()+",'"+event.getSeverity().substring(0,2)+"','"+application+"','"+event.getIncidentStatus().substring(0, 2)+"')";
-                LOGGER.log(Level.INFO, "{0}: Inserting into log table for application {1} event {2}.", new Object[]{Thread.currentThread().getName(), application, event.getId()});
-                LOGGER.log(Level.INFO, "{0}: Insert query {1}.", new Object[]{Thread.currentThread().getName(), insert_string});
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Inserting into log table for application "+application+" event "+event.getId()+".");
+                LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Insert query "+insert_string+".");
                 stm.execute(insert_string);
                 succeeded = true;
                 writeMetric("Insert log success", "AVERAGE", "1");
@@ -467,7 +480,7 @@ public class connectionUtil {
         }
         catch(SQLException ex){
             writeMetric("Insert log fail", "AVERAGE", "1");
-            LOGGER.log(Level.WARNING, "{0}: There was an exception writing to events log table: {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+            LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": There was an exception writing to events log table: "+ex.getMessage());
         }
         return succeeded;
     }
@@ -475,7 +488,7 @@ public class connectionUtil {
     private boolean removeEventFromTempLogTable(Event event, String application, Connection con){
         boolean succeeded = false;
         try{
-            LOGGER.log(Level.INFO, "{0}: Removing from log table for application {1} event {2}.", new Object[]{Thread.currentThread().getName(), application, event.getId()});
+            LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Removing from log table for application "+application+" event "+event.getId()+".");
             Statement stm = con.createStatement();
             String delete_string = "delete from temp_events where id = "+event.getId()+" and application='"+ application+"'";
             stm.execute(delete_string);
@@ -484,7 +497,7 @@ public class connectionUtil {
         }
         catch(SQLException ex){
             writeMetric("Delete temp log fail", "AVERAGE", "1");
-            LOGGER.log(Level.WARNING, "{0}: There was an exception deleting from tempo_events log table: {1}", new Object[]{Thread.currentThread().getName(), ex.getMessage()});
+            LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": There was an exception deleting from tempo_events log table: "+ex.getMessage());
         }
         return succeeded;
     }
@@ -495,22 +508,22 @@ public class connectionUtil {
             String auth_token = authenticate(controllerURL, controllerUser, controllerAccount, controllerKey);
             if (!auth_token.equals("")){
                 try{
-                    LOGGER.log(Level.INFO, "{0}: Trying to retrieve applications...", Thread.currentThread().getName());
+                    LOGGER.log(Level.INFO, Thread.currentThread().getName()+ "{0}: Trying to retrieve applications...");
                     String full_url = controllerURL+"/controller/rest/applications?output=json";
                     CUrl curl = new CUrl(full_url);
                     String header = "Authorization:Bearer "+auth_token;
                     curl.header(header);
-                    LOGGER.log(Level.INFO, "{0}: Curl: \"{1}\", Header: \"Authorization:Bearer xxxxxxxxx\"", new Object[]{Thread.currentThread().getName(), full_url});
+                    LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Curl: \""+full_url+"\", Header: \"Authorization:Bearer xxxxxxxxx\"");
                     app_list = curl.exec(AppJsonResolver, null);
                     if (curl.getHttpCode() <= 400){
-                        LOGGER.log(Level.INFO, "{0}: Applications successfully retrieved:", Thread.currentThread().getName());
+                        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Applications successfully retrieved:");
                         for (Application app:app_list){
                             LOGGER.log(Level.INFO, app.toString());
                         }
                         //System.out.println("Applications successfully retrieved...");
                     }
                     else{
-                        LOGGER.log(Level.INFO, "{0}: Failed retrieving applications. HTTP STATUS CODE: {1}", new Object[]{Thread.currentThread().getName(), curl.getHttpCode()});
+                        LOGGER.log(Level.INFO, Thread.currentThread().getName()+": Failed retrieving applicatios. HTTP STATUS CODE: "+curl.getHttpCode());
                         //System.out.println("Connection failed...");
                     }
                     //adding database monitoring and server monitoring to the app list
@@ -536,7 +549,7 @@ public class connectionUtil {
                     final_app_list[i] = database_monitoring_app[0];
                 }
                 catch (Exception e){
-                    LOGGER.log(Level.WARNING, "{0}: There was an error: {1}", new Object[]{Thread.currentThread().getName(), e.getMessage()});
+                    LOGGER.log(Level.WARNING, Thread.currentThread().getName()+": There was an error: "+e.getMessage());
                 }
             }
             

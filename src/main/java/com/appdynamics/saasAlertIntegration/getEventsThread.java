@@ -8,9 +8,12 @@ import com.appdynamics.saasAlertIntegration.connectionUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+//import java.util.logging.Level;
+//import java.util.logging.Logger;
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Level;
 
 /**
  *
@@ -30,7 +33,8 @@ public class getEventsThread extends Thread implements Runnable {
     String integration_port;
     String integration_protocol;
     private Connection connection;
-    final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+    //final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+    final private static Logger LOGGER = LogManager.getRootLogger();
     
     public getEventsThread(String application_id, String application_name, String controller_url, String controller_user, String controller_account, String controller_key, int poll_interval, Connection connection, String metric_prefix, String integration_hostname, String integration_port, String integration_protocol) {
 	this.application_id = application_id;
@@ -65,10 +69,10 @@ public class getEventsThread extends Thread implements Runnable {
             this.connection.close();
         }
         catch (SQLException ex){
-            LOGGER.log(Level.WARNING, "There was a SQL Exception: "+ex.getMessage());
+            LOGGER.log(Level.WARN, "There was a SQL Exception: "+ex.getMessage());
         }
         catch (NullPointerException ex2){
-            LOGGER.log(Level.WARNING, "Null pointer exception: "+ex2.getMessage());
+            LOGGER.log(Level.WARN, "Null pointer exception: "+ex2.getMessage());
             ex2.printStackTrace();
         }
     }
