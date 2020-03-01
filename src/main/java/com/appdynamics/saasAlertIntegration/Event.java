@@ -48,7 +48,8 @@ public class Event {
     }
     
     public String getSeverity() {
-          return severity;
+        if (severity != null) return severity;
+        else return getIncidentStatus();
     }
     
     public void setSeverity(String severity) {

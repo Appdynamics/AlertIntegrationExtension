@@ -39,7 +39,7 @@ public class ConfigReader {
 		
 		try {
 			File configFile = new File(propFileName);
-                         LOGGER.log(Level.INFO, "Config file path: {0}", configFile.getCanonicalPath());
+                         LOGGER.log(Level.INFO, "Config file path: {}", configFile.getCanonicalPath());
 			inputStream = new FileInputStream(configFile);
 			//inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
 			//getClass().getClassLoader().getResourceAsStream(propFileName).

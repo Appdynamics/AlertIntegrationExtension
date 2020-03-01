@@ -13,10 +13,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Properties;
-import java.util.logging.FileHandler;
 //import java.util.logging.Level;
 //import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
@@ -28,12 +26,9 @@ import java.util.LinkedList;
 import java.util.Queue;
 import com.roxstudio.utils.CUrl;
 import com.roxstudio.utils.CUrl.IO;
-import javax.swing.text.Document;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.Connection;
-import java.util.logging.LogRecord;
-import org.apache.logging.log4j.Level;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.quartz.Job;
 import org.quartz.JobDataMap;
@@ -88,12 +83,12 @@ public class JobTrigger {
 	public static void main(String[] args) throws Exception {
                 //setUpLogger();
                 //LOGGER.log(Level.WARN, arg1);
-		LOGGER.log(Level.INFO, "Starting Alert Integration...");
+		LOGGER.log(Level.INFO, "{}: Starting Alert Integration...", new Object(){}.getClass().getEnclosingMethod().getName());
 		Queue<String> waitingQueue = new LinkedList<>();
                 ConfigReader configuration = new ConfigReader();
                 try {
                     //JdbcConnectionPool connectionPool = setH2ConnectionPool();
-                    LOGGER.log(Level.INFO, "Reading configuration from file config.properties.");
+                    LOGGER.log(Level.INFO, "{}: Reading configuration from file config.properties.", new Object(){}.getClass().getEnclosingMethod().getName());
                     Properties configProperties = configuration.getPropValues("config.properties");
                     String controllerURL = configProperties.getProperty("controller_url");
                     String controllerUser = configProperties.getProperty("controller_user");
@@ -104,13 +99,15 @@ public class JobTrigger {
                     String integration_hostname = configProperties.getProperty("integration_hostname");
                     String integration_port = configProperties.getProperty("integration_port");
                     String integration_protocol = configProperties.getProperty("integration_protocol");
-                    LOGGER.log(Level.INFO, "Finished reading configuration properties.");
+                    String alert_server_viz = configProperties.getProperty("alert_server_viz");
+                    String alert_db_viz = configProperties.getProperty("alert_db_viz");
+                    LOGGER.log(Level.INFO, "{}: Finished reading configuration properties.", new Object(){}.getClass().getEnclosingMethod().getName());
                     
                     //Defining the Job
                     JobDetail job = JobBuilder.newJob(AlertIntegrationJob.class)
 				.withIdentity("ControllerThread", "group1").build();
                     
-                    LOGGER.log(Level.INFO, "Setting up jobDataMap.");
+                    LOGGER.log(Level.INFO, "{}: Setting up jobDataMap.", new Object(){}.getClass().getEnclosingMethod().getName());
                     job.getJobDataMap().put(AlertIntegrationJob.controllerURL, controllerURL);
                     job.getJobDataMap().put(AlertIntegrationJob.controllerUser, controllerUser);
                     job.getJobDataMap().put(AlertIntegrationJob.controllerAccount, controllerAccount);
@@ -120,8 +117,10 @@ public class JobTrigger {
                     job.getJobDataMap().put(AlertIntegrationJob.integrationHostname, integration_hostname);
                     job.getJobDataMap().put(AlertIntegrationJob.integrationPort, integration_port);
                     job.getJobDataMap().put(AlertIntegrationJob.integrationProtocol, integration_protocol);
-                    LOGGER.log(Level.INFO, "JobDataMap defined successfully.");
-                    LOGGER.log(Level.INFO, "Building and scheduling job.");
+                    job.getJobDataMap().put(AlertIntegrationJob.alertServerViz, alert_server_viz);
+                    job.getJobDataMap().put(AlertIntegrationJob.alertDBViz, alert_db_viz);
+                    LOGGER.log(Level.INFO, "{}: JobDataMap defined successfully.", new Object(){}.getClass().getEnclosingMethod().getName());
+                    LOGGER.log(Level.INFO, "{}: Building and scheduling job.", new Object(){}.getClass().getEnclosingMethod().getName());
                     
                     // Trigger the job to run on the next round minute
                     Trigger trigger = TriggerBuilder
@@ -138,9 +137,8 @@ public class JobTrigger {
                     scheduler.scheduleJob(job, trigger);
                 }
                 catch (Exception e) {
-                    LOGGER.log(Level.WARN, "Tste"+e.getMessage());
-                        LOGGER.log(Level.WARN, "Could not read configuration file: "+ e.getMessage());
-                        e.printStackTrace();
+                    LOGGER.log(Level.WARN, "{}: Could not read configuration file: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), e.getMessage()});
+                    e.printStackTrace();
                 }
                 
                 

@@ -4,12 +4,11 @@
  * and open the template in the editor.
  */
 package com.appdynamics.saasAlertIntegration;
+
 import com.appdynamics.saasAlertIntegration.connectionUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-//import java.util.logging.Level;
-//import java.util.logging.Logger;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -65,14 +64,16 @@ public class getEventsThread extends Thread implements Runnable {
                     connection.writeMetric("Number of successful sent events", "AVERAGE", Integer.toString(events_sent));
                     connection.writeMetric("Number of expected events to be sent", "AVERAGE", Integer.toString(events_to_send.size()));
                 }
+                else LOGGER.log(Level.INFO, "{}: List of events for application {} is empty.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), this.application_name});
             }
             this.connection.close();
+            //this.connection.
         }
         catch (SQLException ex){
-            LOGGER.log(Level.WARN, "There was a SQL Exception: "+ex.getMessage());
+            LOGGER.log(Level.WARN, "{}: There was a SQL Exception: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ex.getMessage()});
         }
         catch (NullPointerException ex2){
-            LOGGER.log(Level.WARN, "Null pointer exception: "+ex2.getMessage());
+            LOGGER.log(Level.WARN, "{}: Null pointer exception: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ex2.getMessage()});
             ex2.printStackTrace();
         }
     }
