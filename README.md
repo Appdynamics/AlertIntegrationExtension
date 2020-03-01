@@ -19,3 +19,12 @@ Restart the machine agent and the extension will start:
 3. It will write metrics of each steps so these metrics can be monitored to check if the integration is working properly.
 
 
+## New to this version
+
+1. Config properties now allow to specify if Server Viz and DB Viz alerts should be sent to the integration:
+   - Just fill the following properties on the config.properties file:
+   - alert_server_viz=<true|false>
+   - alert_db_viz=<true|false>
+   - This is case sensitive and MUST be all lowercase.
+2. Logging
+   - All log lines show date, time, thread and method that fired the log entry.
