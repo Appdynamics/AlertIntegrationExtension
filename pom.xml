@@ -4,7 +4,7 @@
 	<groupId>com.appdynamics.saasAlertIntegration</groupId>
 	<artifactId>AlertIntegration</artifactId>
 	<packaging>jar</packaging>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.1</version>
 	<name>AlertIntegration</name>
 	<url>http://maven.apache.org</url>
         
@@ -161,6 +161,7 @@
                                 <fileset dir="src/main/resources" includes="monitor.xml" />
                                 <fileset dir="src/main/resources" includes="alertIntegrationLinux.sh" />
                                 <fileset dir="src/main/resources" includes="appd_events_db.mv.db" />
+                                <fileset dir="src/main/resources" includes="log4j2.properties" />
                             </copy>
                             <copy todir="${project.build.directory}/AlertIntegration">
                                 <fileset dir="${project.build.directory}"
