@@ -126,7 +126,8 @@ public class Event {
         }
         
         if (reducedDescriptionEnd == -1){
-            reducedDescriptionEnd = 255;
+            if (description.length() < 255) reducedDescriptionEnd = description.length();
+            else reducedDescriptionEnd = 255;
         }
         
         reducedDescription = reducedDescription.substring(reducedDescriptionStart, reducedDescriptionEnd);// if text above was found it will reduce even more the description, if not it will be a 255 character long string begining at the original start
