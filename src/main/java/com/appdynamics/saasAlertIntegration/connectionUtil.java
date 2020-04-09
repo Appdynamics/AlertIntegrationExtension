@@ -212,10 +212,12 @@ public class connectionUtil {
             String itm_classname = "", itm_customercode = "", itm_origin = "", itm_severity = "", itm_hostname = "", itm_applid = "", itm_msg = "", itm_ipaddress = "", itm_component = "", itm_subcomponent = "", itm_instancesituation = "", itm_instanceid = "", itm_eventtype = "";
             Properties itm_appd_field_mapping = itm_appd_config.getPropValues("itm_appd_mapping.properties");
             Enumeration<String> enums = (Enumeration<String>) itm_appd_field_mapping.propertyNames();
+            String JSONInnerContents = "";
             while (enums.hasMoreElements()) {
                 String key = enums.nextElement(); 
                 String value = itm_appd_field_mapping.getProperty(key);
-                switch (key){
+                JSONInnerContents += "\""+key+"\":\""+mapFields(value, event, application)+"\",";
+                /*switch (key){
                     case "classname":
                         itm_classname=mapFields(value, event, application);
                         break;
@@ -255,11 +257,10 @@ public class connectionUtil {
                     case "eventtype":
                         itm_eventtype=mapFields(value, event, application);
                         break;
-                }
+                }*/
             }
-            String POST_BODY = "{"+
-                               "\"source\":\"AppDynamics\","+
-                               "\"classname\":\""+itm_classname+"\","+
+            String POST_BODY = "{" + JSONInnerContents + "\"source\":\"AppDynamics\"}";
+                               /*"\"classname\":\""+itm_classname+"\","+
                                "\"customercode\":\""+itm_customercode+"\","+
                                "\"origin\":\""+itm_origin+"\","+
                                "\"severity\":\""+itm_severity+"\","+
@@ -272,7 +273,7 @@ public class connectionUtil {
                                "\"instancesituation\":\""+itm_instancesituation+"\","+
                                "\"instanceid\":\""+itm_instanceid+"\","+
                                "\"eventtype\":\""+itm_eventtype+"\""+
-                               "}";
+                               "}";*/
             LOGGER.log(Level.INFO, "{}: Integration POST BODY Json: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), POST_BODY});
             String full_integration_url = integration_protocol+"://"+integration_hostname+":"+integration_port;
             CUrl curl = new CUrl(full_integration_url);
