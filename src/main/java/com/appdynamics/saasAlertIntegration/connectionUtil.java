@@ -177,14 +177,8 @@ public class connectionUtil {
     
     private String mapFields(String input, Event event, String application){
         String output;
-        String severity;
-        if ((event.getIncidentStatus().equals("RESOLVED"))||(event.getIncidentStatus().equals("CANCELED"))){
-            LOGGER.log(Level.INFO, "{}: Mapping fields, incident status: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.getIncidentStatus()});
-            severity = "CLEAR";
-        }
-        else{
-            severity = event.getSeverity();
-        }
+        String severity = event.getSeverity();
+        int severity_code = event.getSeverityCode();
         
         output = input;
         output = output.replace("ACCOUNT_NAME", this.controller_account);
@@ -193,6 +187,7 @@ public class connectionUtil {
         output = output.replace("APPLICATION_NAME", application);
         output = output.replace("DEEP_LINK", event.getDeepLinkUrl());
         output = output.replace("SEVERITY", severity);
+        output = output.replace("SEVERITY_CODE", Integer.toString(severity_code));
         output = output.replace("TRIGGERED_ENTITY_TYPE", event.getTriggeredEntityDefinition().getEntityType());
         output = output.replace("TRIGGERED_ENTITY_ID", event.getTriggeredEntityDefinition().getEntityId());
         output = output.replace("START_TIME", Long.toString(event.getStartTimeInMillis()));
@@ -200,6 +195,7 @@ public class connectionUtil {
         output = output.replace("END_TIME", Long.toString(event.getEndTimeInMillis()));
         output = output.replace("NAME", event.getName());
         output = output.replace("DESCRIPTIPTION", event.getDescription());
+        output = output.replace("REDUCED_DESCRIPTION", event.getReducedDescription());
         output = output.replace("ID", event.getId());
         output = output.replace("AFFECTED_ENTITY_TYPE", event.getAffectedEntityDefinition().getEntityType());
         output = output.replace("AFFECTED_ENTITY_ID", event.getAffectedEntityDefinition().getEntityId());
@@ -388,7 +384,10 @@ public class connectionUtil {
             completeDBTransaction(sendToIntegrationResult, con);
             try{
                 LOGGER.log(Level.INFO, "{}: Writing event to file.", new Object(){}.getClass().getEnclosingMethod().getName());
-                if (sendToIntegrationResult == true) writeSentEventsToFile("Event ID: "+event.getId()+", Event Name: "+event.getName()+", Application: "+application);
+                if (sendToIntegrationResult == true) writeSentEventsToFile("Event ID: "+event.getId()+
+                                                                           ", Event Name: "+event.getName()+
+                                                                           ", Application: "+application+
+                                                                           ", Full Event String:"+event.toString());
             }
             catch (IOException ex){
                 LOGGER.log(Level.WARN, "{}: WRITING EVENTS TO FILE FAILED: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ex.getMessage()});
@@ -423,7 +422,7 @@ public class connectionUtil {
         boolean succeeded=false;
         LOGGER.log(Level.INFO, "{}: Sending application {} event {} to integration.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.getId(), application});
         if (tentative >= 10){
-            LOGGER.log(Level.WARN, new Object(){}.getClass().getEnclosingMethod().getName()+": Number of tentatives shoulf be less than 10, changing value to 9.", new Object(){}.getClass().getEnclosingMethod().getName());
+            LOGGER.log(Level.WARN, new Object(){}.getClass().getEnclosingMethod().getName()+": Number of tentatives should be less than 10, changing value to 9.", new Object(){}.getClass().getEnclosingMethod().getName());
             tentative = 9;
         }
         while (tentative >=0){

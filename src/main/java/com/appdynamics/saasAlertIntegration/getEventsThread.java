@@ -63,6 +63,8 @@ public class getEventsThread extends Thread implements Runnable {
                     //int sent_rate=events_sent/events_to_send.size();
                     connection.writeMetric("Number of successful sent events", "AVERAGE", Integer.toString(events_sent));
                     connection.writeMetric("Number of expected events to be sent", "AVERAGE", Integer.toString(events_to_send.size()));
+                    connection.writeMetric("Percentage of successful events sent", "AVERAGE", Integer.toString(Math.round(events_sent*100/events_to_send.size())));
+                    
                 }
                 else LOGGER.log(Level.INFO, "{}: List of events for application {} is empty.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), this.application_name});
             }

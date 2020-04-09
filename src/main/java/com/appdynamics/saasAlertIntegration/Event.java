@@ -5,6 +5,8 @@
  */
 package com.appdynamics.saasAlertIntegration;
 
+import org.apache.logging.log4j.Level;
+
 /**
  *
  * @author igor.simoes
@@ -52,6 +54,23 @@ public class Event {
         else return getIncidentStatus();
     }
     
+    public int getSeverityCode() {
+        int severity_code = 0;
+        if ((getIncidentStatus().equals("RESOLVED"))||(getIncidentStatus().equals("CANCELED"))){
+            this.severity = "CLEAR";
+            severity_code = 0;
+        }
+        else{
+            severity = getSeverity();
+            if (severity.equals("WARNING")) severity_code = 1;
+            else
+                if (severity.equals("CRITICAL")) severity_code = 2;
+                else severity_code = -1;
+        }
+        
+        return severity_code;
+    }
+    
     public void setSeverity(String severity) {
         this.severity = severity;
     }
@@ -92,6 +111,29 @@ public class Event {
           return description;
     }
     
+    public String getReducedDescription(){
+        String reducedDescription = description;
+        //removing HTML markup
+        reducedDescription = reducedDescription.replace("<b>", "");
+        reducedDescription = reducedDescription.replace("</b>", "");
+        reducedDescription = reducedDescription.replace("<\\/b>", "");
+        reducedDescription = reducedDescription.replace("<br>", "");
+        //removing unnecessary parts of the msg
+        int reducedDescriptionStart = reducedDescription.indexOf("1)");
+        int reducedDescriptionEnd = reducedDescription.indexOf("Baseline used here is ");
+        if (reducedDescriptionStart == -1){
+            reducedDescriptionStart = 0;
+        }
+        
+        if (reducedDescriptionEnd == -1){
+            reducedDescriptionEnd = 255;
+        }
+        
+        reducedDescription = reducedDescription.substring(reducedDescriptionStart, reducedDescriptionEnd);// if text above was found it will reduce even more the description, if not it will be a 255 character long string begining at the original start
+        
+        return reducedDescription;
+    }
+    
     public void setDescription(String description) {
         this.description = description;
     }
@@ -122,6 +164,7 @@ public class Event {
                ", endTimeInMillis=" +endTimeInMillis+ 
                ", name=" + name + 
                ", description=" +description+ 
+               ", reducedDescription=" + getReducedDescription() + 
                ", id=" + id+ 
                ", affectedEntityDefinition=" + affectedEntityDefinition + 
                ", incidentStatus=" +incidentStatus + "]";
