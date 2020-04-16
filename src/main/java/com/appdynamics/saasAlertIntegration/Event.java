@@ -24,6 +24,7 @@ public class Event {
     private String id;//": 10356788,
     private affectedEntityDefinition affectedEntityDefinition = new affectedEntityDefinition();  
     private String incidentStatus;//": "OPEN"
+    private String ITMCode;//This will hold the ITM code being sent
 
     public triggeredEntityDefinition getTriggeredEntityDefinition() {
           return triggeredEntityDefinition;
@@ -69,6 +70,10 @@ public class Event {
         }
         
         return severity_code;
+    }
+    
+    public void setITMSeverityCode(String code){
+        this.ITMCode = code;
     }
     
     public void setSeverity(String severity) {

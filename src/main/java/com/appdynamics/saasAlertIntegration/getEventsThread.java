@@ -8,6 +8,7 @@ package com.appdynamics.saasAlertIntegration;
 import com.appdynamics.saasAlertIntegration.connectionUtil;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.apache.logging.log4j.LogManager;
@@ -32,10 +33,23 @@ public class getEventsThread extends Thread implements Runnable {
     String integration_port;
     String integration_protocol;
     private Connection connection;
+    HashMap<String, String> severity_mapping_codes;
     //final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     final private static Logger LOGGER = LogManager.getRootLogger();
     
-    public getEventsThread(String application_id, String application_name, String controller_url, String controller_user, String controller_account, String controller_key, int poll_interval, Connection connection, String metric_prefix, String integration_hostname, String integration_port, String integration_protocol) {
+    public getEventsThread(String application_id, 
+            String application_name, 
+            String controller_url, 
+            String controller_user, 
+            String controller_account, 
+            String controller_key, 
+            int poll_interval, 
+            Connection connection, 
+            String metric_prefix, 
+            String integration_hostname, 
+            String integration_port, 
+            String integration_protocol,
+            HashMap<String, String> severity_mapping_codes) {
 	this.application_id = application_id;
         this.application_name = application_name;
         this.controller_url = controller_url;
@@ -48,12 +62,13 @@ public class getEventsThread extends Thread implements Runnable {
         this.integration_hostname = integration_hostname;
         this.integration_port = integration_port;
         this.integration_protocol = integration_protocol;
+        this.severity_mapping_codes = severity_mapping_codes;
     }
     
     public void run() {
         Event[] event_list;
         
-        connectionUtil connection = new connectionUtil(metric_prefix, controller_account);
+        connectionUtil connection = new connectionUtil(metric_prefix, controller_account, severity_mapping_codes);
         event_list = connection.getEvents(this.application_id, this.application_name, this.controller_url, this.controller_user, this.controller_account, this.controller_key, this.poll_interval);
         try{
             if (connection.insertEventsToTemp(event_list, this.application_name, this.connection)){

@@ -53,32 +53,18 @@ public class JobTrigger {
     
         final private static Logger LOGGER = LogManager.getRootLogger();//Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
         
-        /*private static void setUpLogger(){
-           try{
-               FileHandler fileTxt = new FileHandler("AlertIntegration.log", 10000000, 5, true);
-               fileTxt.setFormatter(new SimpleFormatter() {
-                   private static final String format = "[%1$tF %1$tT] [%2$-7s] %3$s %n";
-                   
-                   @Override
-                   public synchronized String format(LogRecord lr) {
-                        return String.format(format,
-                             new Date(lr.getMillis()),
-                             lr.getLevel().getLocalizedName(),
-                             lr.getMessage()
-                        );
-                   }
-               });
-               
-               //fileTxt.setFormatter(loggerFormatter);
-               LOGGER.addHandler(fileTxt);
-               LOGGER.setLevel(Level.INFO);
-               LOGGER.setUseParentHandlers(false);
-//               LOGGER.setUseParentHandlers(false);//removeHandler(ConsoleHandler.class);
-           } 
-           catch (IOException e){
-               System.out.println("Unable to write log: "+ e.getMessage());
-           }
-        }*/
+        private static String validateITMSeverityCodes(String code){
+            String validatedCode;
+            int codeConversion = Integer.parseInt(code);
+            if ((codeConversion > 6)||(codeConversion < 0)||(codeConversion == 2)||(codeConversion == 1)){
+                validatedCode = "3";
+            }
+            else{
+                validatedCode = code;
+            }
+            
+            return validatedCode;
+        }
         
 	public static void main(String[] args) throws Exception {
                 //setUpLogger();
@@ -101,6 +87,9 @@ public class JobTrigger {
                     String integration_protocol = configProperties.getProperty("integration_protocol");
                     String alert_server_viz = configProperties.getProperty("alert_server_viz");
                     String alert_db_viz = configProperties.getProperty("alert_db_viz");
+                    String itm_warning_code = validateITMSeverityCodes(configProperties.getProperty("itm_warning_code"));
+                    String itm_critical_code = validateITMSeverityCodes(configProperties.getProperty("itm_critical_code"));
+                    String itm_clear_code = validateITMSeverityCodes(configProperties.getProperty("itm_clear_code"));
                     LOGGER.log(Level.INFO, "{}: Finished reading configuration properties.", new Object(){}.getClass().getEnclosingMethod().getName());
                     
                     //Defining the Job
@@ -119,6 +108,9 @@ public class JobTrigger {
                     job.getJobDataMap().put(AlertIntegrationJob.integrationProtocol, integration_protocol);
                     job.getJobDataMap().put(AlertIntegrationJob.alertServerViz, alert_server_viz);
                     job.getJobDataMap().put(AlertIntegrationJob.alertDBViz, alert_db_viz);
+                    job.getJobDataMap().put(AlertIntegrationJob.ITMWarningCode, itm_warning_code);
+                    job.getJobDataMap().put(AlertIntegrationJob.ITMCriticalCode, itm_critical_code);
+                    job.getJobDataMap().put(AlertIntegrationJob.ITMClearCode, itm_clear_code);
                     LOGGER.log(Level.INFO, "{}: JobDataMap defined successfully.", new Object(){}.getClass().getEnclosingMethod().getName());
                     LOGGER.log(Level.INFO, "{}: Building and scheduling job.", new Object(){}.getClass().getEnclosingMethod().getName());
                     

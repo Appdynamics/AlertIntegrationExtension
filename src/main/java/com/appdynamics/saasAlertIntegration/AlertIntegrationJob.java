@@ -15,6 +15,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,6 +40,9 @@ public class AlertIntegrationJob implements Job{
     public static final String integrationProtocol = "integration_protocol";
     public static final String alertServerViz = "alert_server_viz";
     public static final String alertDBViz = "alert_db_viz";
+    public static final String ITMWarningCode = "itm_warning_code";
+    public static final String ITMCriticalCode = "itm_critical_code";
+    public static final String ITMClearCode = "itm_clear_code";
     private JdbcConnectionPool connectionPool;
     
     private void setH2ConnectionPool(){
@@ -61,6 +65,10 @@ public class AlertIntegrationJob implements Job{
         String integration_protocol = dataMap.getString(integrationProtocol);
         String alert_server_viz = dataMap.getString(alertServerViz);
         String alert_db_viz = dataMap.getString(alertDBViz);
+        HashMap<String, String> severity_mapping_codes = new HashMap<>();// itm_warning_code = dataMap.getString(ITMWarningCode);
+        severity_mapping_codes.put("WARNING", dataMap.getString(ITMWarningCode));
+        severity_mapping_codes.put("CRITICAL", dataMap.getString(ITMCriticalCode));
+        severity_mapping_codes.put("CLEAR", dataMap.getString(ITMClearCode));
         int poll_interval = dataMap.getInt(pollInterval);
         setH2ConnectionPool();
         
@@ -81,7 +89,7 @@ public class AlertIntegrationJob implements Job{
             LOGGER.log(Level.INFO, "{}: Deleting old entries from log: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), delete_old_entries});
             deletestm.execute(delete_old_entries);
             deletecon.commit();
-            connectionUtil controllerConnection = new connectionUtil(metric_prefix, controller_account);
+            connectionUtil controllerConnection = new connectionUtil(metric_prefix, controller_account, severity_mapping_codes);
             controllerConnection.writeMetric("Job excution count", "AVERAGE", "1");
             Application[] app_list = controllerConnection.getApplications(controller_url, controller_user, controller_account, controller_key, alert_server_viz, alert_db_viz);
 
@@ -103,7 +111,8 @@ public class AlertIntegrationJob implements Job{
                                                                           metric_prefix,
                                                                           integration_hostname, 
                                                                           integration_port, 
-                                                                          integration_protocol);
+                                                                          integration_protocol,
+                                                                          severity_mapping_codes);
                     new Thread(appThreadGroup, getEventsThreadRunnable).start();
                 }
                 boolean threadsEnded = false;

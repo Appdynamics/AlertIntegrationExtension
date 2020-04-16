@@ -21,6 +21,7 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,10 +41,12 @@ public class connectionUtil {
     private String metric_prefix;
     private String controller_account;
     private long current_auth_token_expiration = 0;
+    private HashMap<String, String> severity_mapping_codes;
     
-    public connectionUtil(String metric_prefix, String controller_account){
+    public connectionUtil(String metric_prefix, String controller_account, HashMap<String, String> severity_mapping_codes){
         this.metric_prefix = metric_prefix;
         this.controller_account = controller_account;
+        this.severity_mapping_codes = severity_mapping_codes;
     }
     
     private CUrl.Resolver<ApiAuthentication> authJsonResolver = new CUrl.Resolver<ApiAuthentication>() {
@@ -178,7 +181,9 @@ public class connectionUtil {
     private String mapFields(String input, Event event, String application){
         String output;
         String severity = event.getSeverity();
-        int severity_code = event.getSeverityCode();
+        String severity_code = severity_mapping_codes.get(severity);
+        event.setITMSeverityCode(severity_code);
+     
         
         output = input;
         output = output.replace("ACCOUNT_NAME", this.controller_account);
@@ -186,7 +191,7 @@ public class connectionUtil {
         output = output.replace("TRIGGERED_ENTITY_NAME", event.getTriggeredEntityDefinition().getName());
         output = output.replace("APPLICATION_NAME", application);
         output = output.replace("DEEP_LINK", event.getDeepLinkUrl());
-        output = output.replace("SEVERITY_CODE", Integer.toString(severity_code));
+        output = output.replace("SEVERITY_CODE", severity_code);
         output = output.replace("SEVERITY", severity);
         output = output.replace("TRIGGERED_ENTITY_TYPE", event.getTriggeredEntityDefinition().getEntityType());
         output = output.replace("TRIGGERED_ENTITY_ID", event.getTriggeredEntityDefinition().getEntityId());
