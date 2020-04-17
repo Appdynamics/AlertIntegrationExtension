@@ -152,7 +152,7 @@ public class connectionUtil {
                     event_list = curl.exec(EventJsonResolver, null);
                     int http_status = curl.getHttpCode();
                     LOGGER.log(Level.INFO, "{}: HTTP Status for retrieving events for application {}: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application_name, http_status});
-                    if (http_status <= 400){
+                    if ((http_status < 400) && (http_status>0)){
                         int events_length = 0;
                         if (event_list != null) events_length = event_list.length;
                         LOGGER.log(Level.INFO, "{}: Total of {} events successfully retrieved for application: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), events_length, application_name});
@@ -165,11 +165,14 @@ public class connectionUtil {
                     LOGGER.log(Level.WARN, "{}: There was an error while retrieving application {} events: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application_name, e.getMessage()});
                 }
             }
-            //leaving only the alerts that are actually in the current time range
-            for (Event event:event_list){
-                if (duration_seconds<=300) duration_seconds+=60;//this will make that any small differences on execution time do not leave any alerts behind
-                if ((System.currentTimeMillis()-event.getStartTimeInMillis())<=(duration_seconds*1000)){
-                    temp_event_list.add(event);
+            if (event_list != null){
+                //leaving only the alerts that are actually in the current time range
+                for (Event event:event_list){
+                    if (duration_seconds<=300) duration_seconds+=60;//this will make that any small differences on execution time do not leave any alerts behind
+                    LOGGER.log(Level.INFO, "{}: Event: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.toString()});
+                    if (((System.currentTimeMillis()-event.getStartTimeInMillis())<=(duration_seconds*1000)) || (event.getIncidentStatus().equals("RESOLVED")) || (event.getIncidentStatus().equals("CANCELED")) || (event.getIncidentStatus().equals("CANCELLED"))){
+                        temp_event_list.add(event);
+                    }
                 }
             }
             Event[] final_event_list = new Event[temp_event_list.size()];//temp_event_list.toArray();
@@ -180,8 +183,13 @@ public class connectionUtil {
     
     private String mapFields(String input, Event event, String application){
         String output;
-        String severity = event.getSeverity();
+        String incidentStatus = event.getIncidentStatus();
+        String severity;
+        if ((incidentStatus.equals("CANCELED")) || (incidentStatus.equals("CANCELLED")) || (incidentStatus.equals("RESOLVED"))) severity = "CLEAR";
+        else severity = event.getSeverity();
+        
         String severity_code = severity_mapping_codes.get(severity);
+        LOGGER.log(Level.INFO, "{}: Severity WARNING value: {}, Severity CRITICAL value: {}, Severity CLEAR value: {}, Severity event value: {}, Severity event code value: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), severity_mapping_codes.get("WARNING"), severity_mapping_codes.get("CRITICAL"), severity_mapping_codes.get("CLEAR"), severity, severity_code});
         event.setITMSeverityCode(severity_code);
      
         
@@ -301,7 +309,7 @@ public class connectionUtil {
         try{
             Statement stm = con.createStatement();
             for (Event event:events){
-                if ((event.getIncidentStatus().equals("RESOLVED"))||(event.getIncidentStatus().equals("CANCELED"))||(event.getSeverity()==null)){
+                if ((event.getIncidentStatus().equals("RESOLVED"))||(event.getIncidentStatus().equals("CANCELED"))||(event.getIncidentStatus().equals("CANCELLED"))||(event.getSeverity()==null)){
                     LOGGER.log(Level.INFO, "{}: Adjusting severity of event, incident status: {}, severity: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.getIncidentStatus(), event.getSeverity()});
                     severity = "CLEAR";
                 }

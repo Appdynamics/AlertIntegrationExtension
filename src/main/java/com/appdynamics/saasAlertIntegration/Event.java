@@ -51,13 +51,18 @@ public class Event {
     }
     
     public String getSeverity() {
-        if (severity != null) return severity;
+        if (severity != null) {
+            if ((getIncidentStatus().equals("RESOLVED"))||(getIncidentStatus().equals("CANCELED"))||((getIncidentStatus().equals("CANCELED")))){
+                this.severity = "CLEAR";
+            }
+            return severity;
+        }
         else return getIncidentStatus();
     }
     
     public int getSeverityCode() {
         int severity_code = 0;
-        if ((getIncidentStatus().equals("RESOLVED"))||(getIncidentStatus().equals("CANCELED"))){
+        if ((getIncidentStatus().equals("RESOLVED"))||(getIncidentStatus().equals("CANCELED"))||(getIncidentStatus().equals("CANCELLED"))){
             this.severity = "CLEAR";
             severity_code = 0;
         }
@@ -77,6 +82,9 @@ public class Event {
     }
     
     public void setSeverity(String severity) {
+        if ((getIncidentStatus().equals("RESOLVED"))||(getIncidentStatus().equals("CANCELED"))||(getIncidentStatus().equals("CANCELLED"))){
+            severity = "CLEAR";
+        }
         this.severity = severity;
     }
     
@@ -164,6 +172,7 @@ public class Event {
     public String toString() {
         return "Event [deepLinkUrl=" + deepLinkUrl + 
                ", severity=" + severity + 
+               ", severity_code=" + ITMCode + 
                ", triggeredEntityDefinition=" +triggeredEntityDefinition + 
                ", startTimeInMillis=" +startTimeInMillis + 
                ", detectedTimeInMillis=" +detectedTimeInMillis + 
