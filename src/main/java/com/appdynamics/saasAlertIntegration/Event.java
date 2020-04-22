@@ -133,17 +133,20 @@ public class Event {
         reducedDescription = reducedDescription.replace("<br>", "");
         //removing unnecessary parts of the msg
         int reducedDescriptionStart = reducedDescription.indexOf("1)");
-        int reducedDescriptionEnd = reducedDescription.indexOf("Baseline used here is ");
         if (reducedDescriptionStart == -1){
             reducedDescriptionStart = 0;
         }
+        reducedDescription = reducedDescription.substring(reducedDescriptionStart);
+        int reducedDescriptionEnd = 255;
         
-        if (reducedDescriptionEnd == -1){
+        /*if (reducedDescriptionEnd == -1){
             if (description.length() < 255) reducedDescriptionEnd = description.length();
             else reducedDescriptionEnd = 255;
-        }
-        
-        reducedDescription = reducedDescription.substring(reducedDescriptionStart, reducedDescriptionEnd);// if text above was found it will reduce even more the description, if not it will be a 255 character long string begining at the original start
+        }*/
+
+        if (reducedDescription.length()>255)
+            reducedDescription = reducedDescription.substring(0, reducedDescriptionEnd);// removed begin of string, now leaving a 255 char long message
+    
         
         return reducedDescription;
     }
