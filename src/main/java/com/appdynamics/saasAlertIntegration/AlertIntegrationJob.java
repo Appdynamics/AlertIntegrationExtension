@@ -43,6 +43,7 @@ public class AlertIntegrationJob implements Job{
     public static final String ITMWarningCode = "itm_warning_code";
     public static final String ITMCriticalCode = "itm_critical_code";
     public static final String ITMClearCode = "itm_clear_code";
+    public static final String UpdateIncidents = "update_incidents";
     private JdbcConnectionPool connectionPool;
     
     private void setH2ConnectionPool(){
@@ -69,6 +70,7 @@ public class AlertIntegrationJob implements Job{
         severity_mapping_codes.put("WARNING", dataMap.getString(ITMWarningCode));
         severity_mapping_codes.put("CRITICAL", dataMap.getString(ITMCriticalCode));
         severity_mapping_codes.put("CLEAR", dataMap.getString(ITMClearCode));
+        String update_incidents = dataMap.getString(UpdateIncidents);
         int poll_interval = dataMap.getInt(pollInterval);
         setH2ConnectionPool();
         
@@ -112,7 +114,8 @@ public class AlertIntegrationJob implements Job{
                                                                           integration_hostname, 
                                                                           integration_port, 
                                                                           integration_protocol,
-                                                                          severity_mapping_codes);
+                                                                          severity_mapping_codes,
+                                                                          update_incidents);
                     new Thread(appThreadGroup, getEventsThreadRunnable).start();
                 }
                 boolean threadsEnded = false;

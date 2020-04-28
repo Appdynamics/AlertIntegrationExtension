@@ -136,7 +136,7 @@ public class connectionUtil {
         return authentication_token;
     }
     
-    public Event[] getEvents(String application_id, String application_name, String controllerURL, String controllerUser, String controllerAccount, String controllerKey, int duration_seconds) {
+    public Event[] getEvents(String application_id, String application_name, String controllerURL, String controllerUser, String controllerAccount, String controllerKey, int duration_seconds, String update_incidents) {
         Event[] event_list = null;
         List<Event> temp_event_list = new ArrayList<>();
         int duration_mins = duration_seconds/60;
@@ -165,12 +165,34 @@ public class connectionUtil {
                     LOGGER.log(Level.WARN, "{}: There was an error while retrieving application {} events: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application_name, e.getMessage()});
                 }
             }
+            
             if (event_list != null){
                 //leaving only the alerts that are actually in the current time range
                 for (Event event:event_list){
+                    String severity;
+                    if (event.getIncidentStatus().equals("OPEN"))
+                        if (event.getSeverity().equals("OPEN")) {
+                            severity = "CRITICAL";
+                            event.setSeverity(severity);
+                        }
+                        else severity = event.getSeverity();
+                    
+                    LOGGER.log(Level.INFO, "{}: SEVERITY {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.getSeverity()});
+                    if ((event.getIncidentStatus().equals("CANCELED")) || (event.getIncidentStatus().equals("CANCELLED")) || (event.getIncidentStatus().equals("RESOLVED"))) {
+                        severity = "CLEAR";
+                        event.setSeverity(severity);
+                    }
+                    else severity = event.getSeverity();
+                    String severity_code = severity_mapping_codes.get(severity);
+                    
+                    event.setITMSeverityCode(severity_code);
                     if (duration_seconds<=300) duration_seconds+=60;//this will make that any small differences on execution time do not leave any alerts behind
-                    LOGGER.log(Level.INFO, "{}: Event: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.toString()});
-                    if (((System.currentTimeMillis()-event.getStartTimeInMillis())<=(duration_seconds*1000)) || (event.getIncidentStatus().equals("RESOLVED")) || (event.getIncidentStatus().equals("CANCELED")) || (event.getIncidentStatus().equals("CANCELLED"))){
+                    LOGGER.log(Level.INFO, "{}: Event: {}, update_incidentes: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.toString(), update_incidents});
+                    if (((System.currentTimeMillis()-event.getStartTimeInMillis())<=(duration_seconds*1000)) || 
+                            (event.getIncidentStatus().equals("RESOLVED")) || 
+                            (event.getIncidentStatus().equals("CANCELED")) || 
+                            (event.getIncidentStatus().equals("CANCELLED")) ||
+                            (update_incidents.equals("true"))){
                         temp_event_list.add(event);
                     }
                 }
@@ -181,44 +203,58 @@ public class connectionUtil {
         return final_event_list;
     }
     
-    private String mapFields(String input, Event event, String application){
+    private String mapFields(String input, Event event, String application, String application_id){
         String output;
         String incidentStatus = event.getIncidentStatus();
         String severity;
         if ((incidentStatus.equals("CANCELED")) || (incidentStatus.equals("CANCELLED")) || (incidentStatus.equals("RESOLVED"))) severity = "CLEAR";
         else severity = event.getSeverity();
+        if (severity == null) severity = "CRITICAL";
+        LOGGER.log(Level.INFO, "{}: Mapping event: {}.", event.toString()); 
+        try{
+            String severity_code = severity_mapping_codes.get(severity);
+            LOGGER.log(Level.INFO, "{}: Severity WARNING value: {}, Severity CRITICAL value: {}, Severity CLEAR value: {}, Severity event value: {}, Severity event code value: {}.", 
+                new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), 
+                severity_mapping_codes.get("WARNING"), 
+                severity_mapping_codes.get("CRITICAL"), 
+                severity_mapping_codes.get("CLEAR"), 
+                severity, 
+                severity_code});
+            event.setITMSeverityCode(severity_code);
+
+            output = input;
+            output = output.replace("{ACCOUNT_NAME}", this.controller_account);
+            output = output.replace("{APPLICATION_ID}", application_id);
+            output = output.replace("{AFFECTED_ENTITY_NAME}", event.getAffectedEntityDefinition().getName());
+            output = output.replace("{TRIGGERED_ENTITY_NAME}", event.getTriggeredEntityDefinition().getName());
+            output = output.replace("{APPLICATION_NAME}", application);
+            output = output.replace("{DEEP_LINK}", event.getDeepLinkUrl());
+            output = output.replace("{SEVERITY_CODE}", severity_code);
+            output = output.replace("{SEVERITY}", severity);
+            output = output.replace("{TRIGGERED_ENTITY_TYPE}", event.getTriggeredEntityDefinition().getEntityType());
+            output = output.replace("{TRIGGERED_ENTITY_ID}", event.getTriggeredEntityDefinition().getEntityId());
+            output = output.replace("{START_TIME}", Long.toString(event.getStartTimeInMillis()));
+            output = output.replace("{DETECTED_TIME}", Long.toString(event.getDetectedTimeInMillis()));
+            output = output.replace("{END_TIME}", Long.toString(event.getEndTimeInMillis()));
+            output = output.replace("{NAME}", event.getName());
+            output = output.replace("{REDUCED_DESCRIPTION}", event.getReducedDescription());
+            output = output.replace("{DESCRIPTIPTION}", event.getDescription());
+            output = output.replace("{ID}", event.getId());
+            output = output.replace("{AFFECTED_ENTITY_TYPE}", event.getAffectedEntityDefinition().getEntityType());
+            output = output.replace("{AFFECTED_ENTITY_ID}", event.getAffectedEntityDefinition().getEntityId());
+            output = output.replace("{STATUS}", event.getIncidentStatus());
+            output = output.replace("{", "").replace("}", "");
+            LOGGER.log(Level.INFO, "{}: Mapping fields: {} -> {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), input, output});
+            return output;
+        }
+        catch(NullPointerException ne){
+            LOGGER.log(Level.WARN, "{}: There was an error while translating fields: {}, {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ne.getMessage(), ne.getStackTrace().toString()});
+            return null;
+        }
         
-        String severity_code = severity_mapping_codes.get(severity);
-        LOGGER.log(Level.INFO, "{}: Severity WARNING value: {}, Severity CRITICAL value: {}, Severity CLEAR value: {}, Severity event value: {}, Severity event code value: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), severity_mapping_codes.get("WARNING"), severity_mapping_codes.get("CRITICAL"), severity_mapping_codes.get("CLEAR"), severity, severity_code});
-        event.setITMSeverityCode(severity_code);
-     
-        
-        output = input;
-        output = output.replace("ACCOUNT_NAME", this.controller_account);
-        output = output.replace("AFFECTED_ENTITY_NAME", event.getAffectedEntityDefinition().getName());
-        output = output.replace("TRIGGERED_ENTITY_NAME", event.getTriggeredEntityDefinition().getName());
-        output = output.replace("APPLICATION_NAME", application);
-        output = output.replace("DEEP_LINK", event.getDeepLinkUrl());
-        output = output.replace("SEVERITY_CODE", severity_code);
-        output = output.replace("SEVERITY", severity);
-        output = output.replace("TRIGGERED_ENTITY_TYPE", event.getTriggeredEntityDefinition().getEntityType());
-        output = output.replace("TRIGGERED_ENTITY_ID", event.getTriggeredEntityDefinition().getEntityId());
-        output = output.replace("START_TIME", Long.toString(event.getStartTimeInMillis()));
-        output = output.replace("DETECTED_TIME", Long.toString(event.getDetectedTimeInMillis()));
-        output = output.replace("END_TIME", Long.toString(event.getEndTimeInMillis()));
-        output = output.replace("NAME", event.getName());
-        output = output.replace("REDUCED_DESCRIPTION", event.getReducedDescription());
-        output = output.replace("DESCRIPTIPTION", event.getDescription());
-        output = output.replace("ID", event.getId());
-        output = output.replace("AFFECTED_ENTITY_TYPE", event.getAffectedEntityDefinition().getEntityType());
-        output = output.replace("AFFECTED_ENTITY_ID", event.getAffectedEntityDefinition().getEntityId());
-        output = output.replace("STATUS", event.getIncidentStatus());
-        output = output.replace("{", "").replace("}", "");
-        LOGGER.log(Level.INFO, "{}: Mapping fields: {} -> {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), input, output});
-        return output;
     }
     
-    private int sendEventHTTPRequest(Event event, String integration_hostname, String integration_port, String integration_protocol, String application){
+    private int sendEventHTTPRequest(Event event, String integration_hostname, String integration_port, String integration_protocol, String application, String application_id){
         ConfigReader itm_appd_config = new ConfigReader();
         int HTTPReturnCode = 0;
         try{
@@ -229,64 +265,10 @@ public class connectionUtil {
             while (enums.hasMoreElements()) {
                 String key = enums.nextElement(); 
                 String value = itm_appd_field_mapping.getProperty(key);
-                JSONInnerContents += "\""+key+"\":\""+mapFields(value, event, application)+"\",";
-                /*switch (key){
-                    case "classname":
-                        itm_classname=mapFields(value, event, application);
-                        break;
-                    case "customercode":
-                        itm_customercode=mapFields(value, event, application);
-                        break;
-                    case "origin":
-                        itm_origin=mapFields(value, event, application);
-                        break;
-                    case "severity":
-                        itm_severity=mapFields(value, event, application);
-                        break;
-                    case "hostname":
-                        itm_hostname=mapFields(value, event, application);
-                        break;
-                    case "applid":
-                        itm_applid=mapFields(value, event, application);
-                        break;
-                    case "msg":
-                        itm_msg=mapFields(value, event, application);
-                        break;
-                    case "ipaddress":
-                        itm_ipaddress=mapFields(value, event, application);
-                        break;
-                    case "component":
-                        itm_component=mapFields(value, event, application);
-                        break;
-                    case "subcomponent":
-                        itm_subcomponent=mapFields(value, event, application);
-                        break;
-                    case "instancesituation":
-                        itm_instancesituation=mapFields(value, event, application);
-                        break;
-                    case "instanceid":
-                        itm_instanceid=mapFields(value, event, application);
-                        break;
-                    case "eventtype":
-                        itm_eventtype=mapFields(value, event, application);
-                        break;
-                }*/
+                JSONInnerContents += "\""+key+"\":\""+mapFields(value, event, application, application_id)+"\",";
             }
-            String POST_BODY = "{" + JSONInnerContents + "\"source\":\"AppDynamics\"}";
-                               /*"\"classname\":\""+itm_classname+"\","+
-                               "\"customercode\":\""+itm_customercode+"\","+
-                               "\"origin\":\""+itm_origin+"\","+
-                               "\"severity\":\""+itm_severity+"\","+
-                               "\"hostname\":\""+itm_hostname+"\","+
-                               "\"applid\":\""+itm_applid+"\","+
-                               "\"msg\":\""+itm_msg+"\","+
-                               "\"ipaddress\":\""+itm_ipaddress+"\","+
-                               "\"component\":\""+itm_component+"\","+
-                               "\"subcomponent\":\""+itm_subcomponent+"\","+
-                               "\"instancesituation\":\""+itm_instancesituation+"\","+
-                               "\"instanceid\":\""+itm_instanceid+"\","+
-                               "\"eventtype\":\""+itm_eventtype+"\""+
-                               "}";*/
+            String POST_BODY = "{" + JSONInnerContents + "\"alert_source\":\"AppDynamics\"}";
+
             LOGGER.log(Level.INFO, "{}: Integration POST BODY Json: {}",new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), POST_BODY});
             String full_integration_url = integration_protocol+"://"+integration_hostname+":"+integration_port;
             CUrl curl = new CUrl(full_integration_url);
@@ -388,13 +370,13 @@ public class connectionUtil {
         return Events;
     }
     
-    public int sendEventsToIntegration(List<Event> events, String application, int tentative, Connection con, String integration_hostname, String integration_port, String integration_protocol){
+    public int sendEventsToIntegration(List<Event> events, String application, int tentative, Connection con, String integration_hostname, String integration_port, String integration_protocol, String application_id){
         int  succeeded = 0;
         LOGGER.log(Level.INFO, "{}: Sending total of {} EVENTS for application {} to integration.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), events.size(), application});
         for (Event event:events){
             boolean sendToIntegrationResult;
             updateLogTables(event, application, con);
-            sendToIntegrationResult = sendEventToIntegration(event, application, tentative, integration_hostname, integration_port, integration_protocol);
+            sendToIntegrationResult = sendEventToIntegration(event, application, tentative, integration_hostname, integration_port, integration_protocol, application_id);
             completeDBTransaction(sendToIntegrationResult, con);
             try{
                 LOGGER.log(Level.INFO, "{}: Writing event to file.", new Object(){}.getClass().getEnclosingMethod().getName());
@@ -432,7 +414,7 @@ public class connectionUtil {
         System.out.println("name="+name+",value="+metric_value+",aggregator="+metric_aggregation);
     }
     
-    private boolean sendEventToIntegration(Event event, String application, int tentative, String integration_hostname, String integration_port, String integration_protocol){
+    private boolean sendEventToIntegration(Event event, String application, int tentative, String integration_hostname, String integration_port, String integration_protocol, String application_id){
         boolean succeeded=false;
         LOGGER.log(Level.INFO, "{}: Sending application {} event {} to integration.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.getId(), application});
         if (tentative >= 10){
@@ -441,7 +423,7 @@ public class connectionUtil {
         }
         while (tentative >=0){
             LOGGER.log(Level.INFO, "{}: Tentative {}, application {}, event {} to integration.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), tentative, application, event.getId()});
-            int httpResponse = sendEventHTTPRequest(event, integration_hostname, integration_port, integration_protocol, application);
+            int httpResponse = sendEventHTTPRequest(event, integration_hostname, integration_port, integration_protocol, application, application_id);
             LOGGER.log(Level.INFO, "{}: HTTP response code from application {}, event {} to integration: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application, event.getId(), httpResponse});
             if (httpResponse == 200) {
                 succeeded = true;
@@ -455,7 +437,7 @@ public class connectionUtil {
                     if (tentative == 0) writeMetric("Fail sendEventToIntegration", "AVERAGE", "1");
                     succeeded = false;
                     Thread.sleep(500);
-                    sendEventToIntegration(event, application, tentative, integration_hostname, integration_port, integration_protocol);
+                    sendEventToIntegration(event, application, tentative, integration_hostname, integration_port, integration_protocol, application_id);
                 }
                 catch(InterruptedException ex){
                     LOGGER.log(Level.WARN, "{}: There was a problem sleeping between integration tentatives.", new Object(){}.getClass().getEnclosingMethod().getName());
@@ -501,9 +483,11 @@ public class connectionUtil {
             rs.next();
             if ((rs.isFirst())&&(rs.isLast())){
                 //update the record
-                String update_string = "update events set type = '"+event.getSeverity().substring(0,2)+"', status = '"+event.getIncidentStatus().substring(0,2)+"' where id = '"+event.getId()+"'";
-                LOGGER.log(Level.INFO, "{}: Updating log table for application {} event {}. Previous status: {}, current status: {}, previous severity: {}, current severity: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application, event.getId(), rs.getString("status"), event.getIncidentStatus(), rs.getString("severity"), event.getSeverity()});
-                LOGGER.log(Level.INFO, "{}: Updating query: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), update_string});
+                String update_string = "update events set TYPE = '"+event.getSeverity().substring(0,2)+"', STATUS = '"+event.getIncidentStatus().substring(0,2)+"' where ID = '"+event.getId()+"'";
+                LOGGER.log(Level.INFO, "{}: Updating 1 log table for application {}, update: ", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application, update_string});
+                //LOGGER.log(Level.INFO, "{}: Updating 1 log table for application {} event {}. Previous status: {}, current status: {}, previous severity: {}, current severity: {}, full string: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application, event.getId(), rs.getString("status"), event.getIncidentStatus(), rs.getString("severity"), event.getSeverity(), update_string});
+                //LOGGER.log(Level.INFO, "{}: Updating 2 log table for application {} event {}. Previous status: {}, current status: {}, previous severity: {}, current severity: {}, full string: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application, event.getId(), rs.getString("status"), event.getIncidentStatus(), rs.getString("severity"), event.getSeverity(), update_string});
+                //LOGGER.log(Level.INFO, "{}: Updating query: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), update_string});
                 stm.execute(update_string);
                 succeeded = true;
                 writeMetric("Insert log success", "AVERAGE", "1");

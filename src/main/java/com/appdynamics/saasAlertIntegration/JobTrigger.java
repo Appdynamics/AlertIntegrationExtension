@@ -90,6 +90,9 @@ public class JobTrigger {
                     String itm_warning_code = validateITMSeverityCodes(configProperties.getProperty("itm_warning_code"));
                     String itm_critical_code = validateITMSeverityCodes(configProperties.getProperty("itm_critical_code"));
                     String itm_clear_code = validateITMSeverityCodes(configProperties.getProperty("itm_clear_code"));
+                    String update_incidents = configProperties.getProperty("update_incidents");
+                    if (update_incidents == null || (!update_incidents.equals("true") && !update_incidents.equals("false")))
+                        update_incidents = "false";
                     LOGGER.log(Level.INFO, "{}: Finished reading configuration properties.", new Object(){}.getClass().getEnclosingMethod().getName());
                     
                     //Defining the Job
@@ -111,6 +114,7 @@ public class JobTrigger {
                     job.getJobDataMap().put(AlertIntegrationJob.ITMWarningCode, itm_warning_code);
                     job.getJobDataMap().put(AlertIntegrationJob.ITMCriticalCode, itm_critical_code);
                     job.getJobDataMap().put(AlertIntegrationJob.ITMClearCode, itm_clear_code);
+                    job.getJobDataMap().put(AlertIntegrationJob.UpdateIncidents, update_incidents);
                     LOGGER.log(Level.INFO, "{}: JobDataMap defined successfully.", new Object(){}.getClass().getEnclosingMethod().getName());
                     LOGGER.log(Level.INFO, "{}: Building and scheduling job.", new Object(){}.getClass().getEnclosingMethod().getName());
                     

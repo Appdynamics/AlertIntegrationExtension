@@ -34,6 +34,7 @@ public class getEventsThread extends Thread implements Runnable {
     String integration_protocol;
     private Connection connection;
     HashMap<String, String> severity_mapping_codes;
+    String update_incidents;
     //final private static Logger LOGGER = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
     final private static Logger LOGGER = LogManager.getRootLogger();
     
@@ -49,7 +50,8 @@ public class getEventsThread extends Thread implements Runnable {
             String integration_hostname, 
             String integration_port, 
             String integration_protocol,
-            HashMap<String, String> severity_mapping_codes) {
+            HashMap<String, String> severity_mapping_codes,
+            String update_incidents) {
 	this.application_id = application_id;
         this.application_name = application_name;
         this.controller_url = controller_url;
@@ -63,18 +65,19 @@ public class getEventsThread extends Thread implements Runnable {
         this.integration_port = integration_port;
         this.integration_protocol = integration_protocol;
         this.severity_mapping_codes = severity_mapping_codes;
+        this.update_incidents = update_incidents;
     }
     
     public void run() {
         Event[] event_list;
         
         connectionUtil connection = new connectionUtil(metric_prefix, controller_account, severity_mapping_codes);
-        event_list = connection.getEvents(this.application_id, this.application_name, this.controller_url, this.controller_user, this.controller_account, this.controller_key, this.poll_interval);
+        event_list = connection.getEvents(this.application_id, this.application_name, this.controller_url, this.controller_user, this.controller_account, this.controller_key, this.poll_interval, this.update_incidents);
         try{
             if (connection.insertEventsToTemp(event_list, this.application_name, this.connection)){
                 List<Event> events_to_send = connection.eventsToBeSent(event_list, this.application_name, this.connection);
                 if (!events_to_send.isEmpty()){
-                    int events_sent = connection.sendEventsToIntegration(events_to_send, this.application_name, 1, this.connection, this.integration_hostname, this.integration_port, this.integration_protocol);
+                    int events_sent = connection.sendEventsToIntegration(events_to_send, this.application_name, 1, this.connection, this.integration_hostname, this.integration_port, this.integration_protocol, this.application_id);
                     //int sent_rate=events_sent/events_to_send.size();
                     connection.writeMetric("Number of successful sent events", "AVERAGE", Integer.toString(events_sent));
                     connection.writeMetric("Number of expected events to be sent", "AVERAGE", Integer.toString(events_to_send.size()));
@@ -90,7 +93,7 @@ public class getEventsThread extends Thread implements Runnable {
             LOGGER.log(Level.WARN, "{}: There was a SQL Exception: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ex.getMessage()});
         }
         catch (NullPointerException ex2){
-            LOGGER.log(Level.WARN, "{}: Null pointer exception: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ex2.getMessage()});
+            LOGGER.log(Level.WARN, "{}: Null pointer exception: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), ex2.getMessage(), ex2.getStackTrace().toString()});
             ex2.printStackTrace();
         }
     }
