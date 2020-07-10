@@ -80,6 +80,7 @@ public class connectionUtil {
         @Override
         public Event[] resolve(int httpCode, byte[] responseBody) throws Throwable {
             String response = new String(responseBody, "UTF-8");
+            LOGGER.log(Level.INFO, "{}: Raw event response body from API: {}", new Object(){}.getClass().getEnclosingMethod().getName(), response);
             GsonBuilder builder = new GsonBuilder();
             Gson gson = builder.create();
             Event[] event_list = gson.fromJson(response, Event[].class);
@@ -144,7 +145,9 @@ public class connectionUtil {
             if (!auth_token.equals("")){
                 try{
                     LOGGER.log(Level.INFO, "{}: Trying to retrieve events for application {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), application_name});
-                    String full_url = controllerURL+"/controller/rest/applications/"+application_id+"/problems/healthrule-violations?time-range-type=BEFORE_NOW&duration-in-mins="+duration_mins+"&output=json";
+                    //String full_url = controllerURL+"/controller/rest/applications/"+application_id+"/problems/healthrule-violations?time-range-type=BEFORE_NOW&duration-in-mins="+duration_mins+"&output=json";
+                    long end_time = System.currentTimeMillis()-60000;
+                    String full_url = controllerURL+"/controller/rest/applications/"+application_id+"/problems/healthrule-violations?time-range-type=BEFORE_TIME&duration-in-mins="+duration_mins+"&end-time="+end_time+"&output=json";
                     CUrl curl = new CUrl(full_url);
                     String header = "Authorization:Bearer "+auth_token;
                     curl.header(header);
@@ -334,7 +337,7 @@ public class connectionUtil {
         try{
             Statement stm = con.createStatement();
             for (Event event:event_list){
-                LOGGER.log(Level.INFO, "{}: Selecting eventsToBeSent: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.toString()});
+                LOGGER.log(Level.INFO, "{}: Selecting temp_events: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), event.toString()});
                 
                 String select_string = "select * from temp_events where application = '"+application+
                                        "' and temp_events.id = '"+event.getId()+
@@ -343,18 +346,18 @@ public class connectionUtil {
                                        " and status = \'"+event.getIncidentStatus().substring(0,2)+"\'"+
                                        " and id = \'"+event.getId()+
                                        "')";
-                String temp_select = "select * from temp_events";
-                ResultSet temprs = stm.executeQuery(temp_select);
-                while (temprs.next()){
-                    LOGGER.log(Level.INFO, "{}: Temp Event ID: {}, Temp Event Name: {}, Temp Event Severity: {}, Temp Event Application: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), temprs.getString("ID"), temprs.getString("NAME"), temprs.getString("SEVERITY"), temprs.getString("APPLICATION")});
-                }
-                temp_select = "select id from events where application = '"+application+"\'"+
+                //String temp_select = "select * from temp_events";
+                //ResultSet temprs = stm.executeQuery(temp_select);
+                //while (temprs.next()){
+                //    LOGGER.log(Level.INFO, "{}: Temp Event ID: {}, Temp Event Name: {}, Temp Event Severity: {}, Temp Event Application: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), temprs.getString("ID"), temprs.getString("NAME"), temprs.getString("SEVERITY"), temprs.getString("APPLICATION")});
+                //}
+                String temp_select = "select id from events where application = '"+application+"\'"+
                                        " and type = '"+event.getSeverity().substring(0,2)+"\'"+
                                        " and status = \'"+event.getIncidentStatus().substring(0,2)+"\'"+
                                        " and id = \'"+event.getId()+"'";
-                temprs = stm.executeQuery(temp_select);
-                if (temprs.next()) LOGGER.log(Level.INFO, "{}: ID from Events: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), temprs.getString("id")});
-                else LOGGER.log(Level.INFO, "{}: No data on events table fro thhis event.");
+                ResultSet temprs = stm.executeQuery(temp_select);
+                if (temprs.next()) LOGGER.log(Level.DEBUG, "{}: ID from Events: {}.", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), temprs.getString("id")});
+                else LOGGER.log(Level.DEBUG, "{}: No data on events table for this event.");
                 LOGGER.log(Level.INFO, "{}: Query to be executed: {}", new Object[]{new Object(){}.getClass().getEnclosingMethod().getName(), select_string});
                 ResultSet rs = stm.executeQuery(select_string);
                 rs.next();
