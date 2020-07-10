@@ -21,4 +21,4 @@ Restart the machine agent and the extension will start:
 
 ## New to this version
 
-1. Extension now checks the alerts for a 1 minute, past the last minute. This allows the API to run all its non atomic operations and the events appear with the proper values.
+1. Extension now checks the alerts for a 1 minute window, past the last minute. This allows the API to run all its non atomic operations and the events appear with the proper values.
